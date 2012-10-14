@@ -1,5 +1,5 @@
 # Author: tntC4stl3
-# Name: OnePiece.py
+# Name: ComicDownloader.py
 
 # -*- coding: utf8 -*- 
 import urllib2
