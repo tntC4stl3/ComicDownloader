@@ -1,20 +1,28 @@
 # Author: tntC4stl3
 # Name: ComicDownloader.py
+# 感谢 宅人 给我的帮助
+# https://groups.google.com/forum/?fromgroups=#!topic/python-cn/ro8vr-Gqvjk
 
-# -*- coding: utf8 -*-
-import re, os
+# -*- coding: utf-8 -*-
+import re, os, time
 import chardet
-import urllib2, threading
-import Queue
+import urllib2, json
+import Queue, threading
 from bs4 import BeautifulSoup
-
-# get current directory
-global root_path
-root_path = os.getcwd()
 
 comic_name = "OnePiece"
 
-thread_num = 10
+# get current directory
+global root_path, store_path
+root_path = os.getcwd()
+store_path = root_path + '\\%s' % comic_name
+# Create a folder in the directory of the script
+try:
+    os.mkdir(store_path)
+except:
+    print "The folder is already existed."
+        
+thread_num = 20
 jobs = Queue.Queue(0)
 
 class MultiChapter(threading.Thread):
@@ -25,76 +33,76 @@ class MultiChapter(threading.Thread):
 
     def run(self):
         while True:
+            if self._chapter_list.empty():
+                break
+            else:
+                self.chapter = self._chapter_list.get(timeout = 3)
+                chapter_path = store_path + '\\%s' % self.chapter[0]
+                print "create %s" % chapter_path
+                os.mkdir(chapter_path)
+                self._jpg_url(self.chapter)
+                
+            """
             if self._chapter_list.qsize() > 0:
-                chapter = self._chapter_list.get()
+                chapter = self._chapter_list.get(timeout=3)
                 jpg_url(chapter)
             else:
-                break
+                break"""
 
+    def _jpg_url(self, chapter_list):
+        print "%s begin" % self.name
+        content = urllib2.urlopen(chapter_list[1]).read()
 
-    
-
-# Download piscs
-def download_pics(pic_list, name, flag):
-    root_url = 'http://imgfast.manhua.178.com/'
-    num = 1
-
-    if flag == 1:
-        suffix = ".jpg"
-    elif flag == 2:
-        suffix = ".png"
-        
-    root_path = root_path + '\\%s' % comic_name
-    os.mkdir(root_path)
-    path = root_path + '\\%s' % name
-    os.mkdir(path)
-    for url in jpg_list:
-        jpg_url = root_url + url.replace('\/','/')
-        print jpg_url
-        content = urllib2.urlopen(jpg_url).read()
-        f = open('OnePiece\%s\%d%s' %(name, num, suffix), 'wb')
-        f.write(content)
-        f.close()
-        num += 1
-
-# Get all jpg urls in one chapter    
-def jpg_url(chapter_list):
-    content = urllib2.urlopen(chapter_list[1]).read()
-
-    # Find the part contains the jpg relative urls
-    m = re.search('var pages = pages = .*', content)
-
-    # some pictures are .jpg, some are .png
-    if re.findall('\"\w.*jpg\"', m.group(0)):
-        test = re.findall('\"\w.*jpg\"', m.group(0))
-        flag = 1
-    else:
-        test = re.findall('\"\w.*png\"', m.group(0))
-        flag = 2
-    pic_list = test[0].replace('"','').split(',')
-        
-    download_pic(pic_list, chapter_list[0], flag)
-
-"""
-# Get all jpg urls in one chapter    
-def jpg_url(chapter_list):
-    for i in range(len(chapter_list)):
-        content = urllib2.urlopen(chapter_list[i][1]).read()
-
-        # Find the part contains the jpg relative urls
+        # Find the part likes var pages = pages = '[xxx]'
         m = re.search('var pages = pages = .*', content)
-        test = re.findall(r'o.*jpg', m.group(0))
-        jpg_list = test[0].split('","')
+        # We only need the '[xxx]' part
+        pages = re.search('\[.*\]', m.group(0))
+
+        # need to know the suffix
+        if re.search('\.jpg', m.group(0)):
+            flag = 1
+        else:
+            flag = 2
         
-        download_jpg(jpg_list, chapter_list[i][0])"""
+        # Thank google python-cn
+        self.jpg_list = json.loads(pages.group(0))
 
-"""
+        self._download_jpg(self.jpg_list, chapter_list[0], flag)
+        
+
+    # Download jpgs
+    def _download_jpg(self, jpg_list, name, flag):
+        root_url = 'http://imgfast.manhua.178.com/'
+        num = 0
+        
+        if flag == 1:
+            suffix = ".jpg"
+        else:
+            suffix = ".png"
+        
+        for url in jpg_list:
+            jpg_url = root_url + url.replace('\/','/')
+
+            attemps = 1
+            while attemps <= 3:
+                f = open('OnePiece\%s\%d%s' %(name, num, suffix), 'wb')
+                try:
+                    content = urllib2.urlopen(jpg_url, timeout=120).read()
+                    if content:
+                        f.write(content)
+                        break
+                except:
+                    print "Open %s failed %d" %(jpg_url, attemps)
+                    attemps += 1
+            #except:
+            #    print "Download %s failed!" % jpg_url
+            f.close()
+            num += 1
+        print "%s done!" % self.name
+
 # Get all released OnePiece chapter
 def chapter_url(url):
-    try:
-        content = urllib2.urlopen(url, timeout = 10).read()
-    except urllib2.URLError, e:
-        raise MyException("There was an error: %r" % e)
+    content = urllib2.urlopen(url, timeout=10).read()
     
     # detect the encode of the site
     code = chardet.detect(content)
@@ -103,36 +111,6 @@ def chapter_url(url):
     char_part = BeautifulSoup(content, from_encoding=code['encoding'])
     char_part =  char_part('div', class_='cartoon_online_border')
 
-    # get the chapter name and url, store in chapter_list
-    # chapter[0][0] means chapter 1's name
-    # chapter[0][1] means chapter 1's url
-    chapter_list = []
-    for part in char_part:
-        soup = BeautifulSoup(str(part))
-        for link in soup.find_all('a'):
-            chapter = []
-            chapter.append(link.get_text())
-            chapter.append(link.get('href'))
-            chapter_list.append(chapter)
-    jpg_url(chapter_list)"""
-
-# Get all released OnePiece chapter
-def chapter_url(url):
-    try:
-        content = urllib2.urlopen(url, timeout = 10).read()
-    except urllib2.URLError, e:
-        raise MyException("There was an error: %r" % e)
-    
-    # detect the encode of the site
-    code = chardet.detect(content)
-    
-    # get the part contains the chapter urls
-    char_part = BeautifulSoup(content, from_encoding=code['encoding'])
-    char_part =  char_part('div', class_='cartoon_online_border')
-
-    # get the chapter name and url, store in chapter_list
-    # chapter[0][0] means chapter 1's name
-    # chapter[0][1] means chapter 1's url
     chapter_list = []
     for part in char_part:
         soup = BeautifulSoup(str(part))
@@ -143,8 +121,10 @@ def chapter_url(url):
             chapter_list.append(chapter)
     for chapter in chapter_list:
         jobs.put(chapter)
+    
     for x in range(thread_num):
-        MultiChapter(jobs).start()
+        t = MultiChapter(jobs).start()
+        time.sleep(3)
             
 if __name__ == "__main__":
     chapter_url('http://manhua.178.com/haizeiwang')
