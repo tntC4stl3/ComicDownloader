@@ -9,17 +9,17 @@ Author : tntCastle
 不能调用urllib2.quote()进行url编码，需要先将url encode 为 utf8，然后调用urllib2.quote()。
 3. 线程数定为了15个。
 ####问题
-1.存在下载不完整的图片，数量非常少，还不知道有什么好的解决办法。
+1. 存在下载不完整的图片，数量非常少，还不知道有什么好的解决办法。
 
 
 ## 2012.10.27
-1.采用别人的建议，用json模块处理了pages字段，增加了下载失败自动重下的机制（三次）。
-2.待解决问题：类似“http://imgfast.manhua.178.com/o/OnePiece/58/One Piece 58_000.jpg”这样的
+1. 采用别人的建议，用json模块处理了pages字段，增加了下载失败自动重下的机制（三次）。
+2. 待解决问题：类似“http://imgfast.manhua.178.com/o/OnePiece/58/One Piece 58_000.jpg”这样的
 url无法urlopen，需要找原因。
 
 ## 2012.10.20
-1.增加了Queue和threading来实现多线程，但是有有时候会有文件夹没创建的情况，待研究解决。
-2.增加了对.jpg和.png后缀的判断。
+1. 增加了Queue和threading来实现多线程，但是有有时候会有文件夹没创建的情况，待研究解决。
+2. 增加了对.jpg和.png后缀的判断。
 
 ## Beginning
 这个脚本的目的是从 http://manhua.178.com 下载指定漫画。
