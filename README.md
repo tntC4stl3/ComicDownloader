@@ -4,10 +4,10 @@ Author : tntCastle
 
 ## 2012.10.28
 ####修正
-1.给urlopen打开chapter页面也加上了三次重试的机制，保证能从页面源代码中找出图片地址。
-2.拼出的“http://imgfast.manhua.178.com/h/海贼王 OnePiece/619话/01.jpg”这种有中文的url地址，
+1. 给urlopen打开chapter页面也加上了三次重试的机制，保证能从页面源代码中找出图片地址。
+2. 拼出的“http://imgfast.manhua.178.com/h/海贼王 OnePiece/619话/01.jpg”这种有中文的url地址，
 不能调用urllib2.quote()进行url编码，需要先将url encode 为 utf8，然后调用urllib2.quote()。
-3.线程数定为了15个。
+3. 线程数定为了15个。
 ####问题
 1.存在下载不完整的图片，数量非常少，还不知道有什么好的解决办法。
 
