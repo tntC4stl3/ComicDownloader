@@ -1,6 +1,6 @@
 # Author: tntC4stl3
 # Name: ComicDownloader.py
-# 感谢 宅人 给我的帮助
+# Special thanks to zhairen
 # https://groups.google.com/forum/?fromgroups=#!topic/python-cn/ro8vr-Gqvjk
 
 # -*- coding: utf-8 -*-
@@ -22,7 +22,7 @@ try:
 except:
     print "The folder is already existed."
         
-thread_num = 20
+thread_num = 15
 jobs = Queue.Queue(0)
 
 class MultiChapter(threading.Thread):
@@ -40,21 +40,27 @@ class MultiChapter(threading.Thread):
                 chapter_path = store_path + '\\%s' % self.chapter[0]
                 print "create %s" % chapter_path
                 os.mkdir(chapter_path)
-                self._jpg_url(self.chapter)
-                
-            """
-            if self._chapter_list.qsize() > 0:
-                chapter = self._chapter_list.get(timeout=3)
-                jpg_url(chapter)
-            else:
-                break"""
+                self._pic_url(self.chapter)
 
-    def _jpg_url(self, chapter_list):
+    def _pic_url(self, chapter_list):
         print "%s begin" % self.name
-        content = urllib2.urlopen(chapter_list[1]).read()
 
+        # 10.28
+        # three attemps to open chapter page
+        attemps = 1
+        while attemps <= 3:
+            try:
+                content = urllib2.urlopen(chapter_list[1], timeout = 120).read()
+                m = re.search('var pages = pages = .*', content)
+                if m:
+                    break
+            except:
+                attemps += 1
+        if attemps>3:
+            return None
+        
         # Find the part likes var pages = pages = '[xxx]'
-        m = re.search('var pages = pages = .*', content)
+        # m = re.search('var pages = pages = .*', content)
         # We only need the '[xxx]' part
         pages = re.search('\[.*\]', m.group(0))
 
@@ -66,9 +72,7 @@ class MultiChapter(threading.Thread):
         
         # Thank google python-cn
         self.jpg_list = json.loads(pages.group(0))
-
-        self._download_jpg(self.jpg_list, chapter_list[0], flag)
-        
+        self._download_jpg(self.jpg_list, chapter_list[0], flag)    
 
     # Download jpgs
     def _download_jpg(self, jpg_list, name, flag):
@@ -82,7 +86,11 @@ class MultiChapter(threading.Thread):
         
         for url in jpg_list:
             jpg_url = root_url + url.replace('\/','/')
-
+            
+            # do URI encode to jpg_url, do not encode :?=/
+            # 10.28 add encode('utf8') to ensure the url can be opened by urlopen
+            jpg_url = urllib2.quote(jpg_url.encode('utf8'),":?=/")
+            
             attemps = 1
             while attemps <= 3:
                 f = open('OnePiece\%s\%d%s' %(name, num, suffix), 'wb')
